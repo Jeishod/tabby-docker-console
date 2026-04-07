@@ -1,15 +1,20 @@
 {
   "name": "tabby-docker-console",
   "version": "0.1.0",
-  "description": "Remote Docker management panel for Tabby SSH sessions",
+  "description": "Remote Docker management panel for Tabby SSH sessions — containers, images, logs, stats and exec terminal over SSH",
   "keywords": [
-    "tabby-plugin"
+    "tabby-plugin",
+    "tabby",
+    "docker",
+    "ssh",
+    "containers"
   ],
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
     "build": "webpack --progress --color",
     "watch": "webpack --progress --color --watch",
+    "install:tabby": "mkdir -p \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/dist\" && cp package.json \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/\" && cp dist/index.js \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/dist/\"",
     "prepublishOnly": "npm run build"
   },
   "files": [
