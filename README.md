@@ -19,6 +19,16 @@ All commands are executed over the **existing SSH session** — no extra connect
 | **Images** | Grid with ID, size, creation date; remove button |
 | **Theme-aware UI** | Uses Tabby's dynamic CSS variables (`--theme-bg`, `--theme-fg`, …) so the panel matches any terminal colour scheme |
 
+![Containers list](./docs/docker-console-plugin-2-containers-list.jpeg)
+
+![Container exec](./docs/docker-console-plugin-3-container-exec.jpeg)
+
+![Container logs](./docs/docker-console-plugin-4-container-logs.jpeg)
+
+![Container stats](./docs/docker-console-plugin-5-container-stats.jpeg)
+
+![Images](./docs/docker-console-plugin-6-images.jpeg)
+
 ---
 
 ## Installation
@@ -61,6 +71,8 @@ Fully quit Tabby (`Cmd+Q` / `Ctrl+Q`) and reopen it.  The plugin is loaded at st
 2. Click the **Docker** button in the tab toolbar (next to Reconnect / SFTP / Ports),  
    **or** right-click the SSH tab → **Docker Console**.
 3. The Docker Console opens as a new Tabby tab.
+
+![Plugin shortcut](./docs/docker-console-plugin-1-plugin-shortcut.jpeg)
 
 > **Docker permissions** — the remote user must be able to run `docker` commands without
 > `sudo`.  Add the user to the `docker` group if needed:
