@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "module": "commonjs",
+    "target": "es2017",
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "removeComments": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "declaration": true,
+    "declarationDir": "dist",
+    "lib": [
+      "dom",
+      "es2017",
+      "es2018"
+    ]
+  },
+  "exclude": ["node_modules", "dist"]
+}
