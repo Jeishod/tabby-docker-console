@@ -21,7 +21,9 @@
     "release:major": "npm version major && git push && git push --tags"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "author": "jeishod",
   "license": "MIT",
