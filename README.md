@@ -1,6 +1,10 @@
 # tabby-docker-console
 
-       
+[![npm version](https://img.shields.io/npm/v/tabby-docker-console?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/tabby-docker-console)
+[![npm downloads](https://img.shields.io/npm/dt/tabby-docker-console?style=for-the-badge&logo=npm&label=DOWNLOADS&color=CB3837)](https://www.npmjs.com/package/tabby-docker-console)
+[![CI](https://img.shields.io/github/actions/workflow/status/Jeishod/tabby-docker-console/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/Jeishod/tabby-docker-console/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/Jeishod/tabby-docker-console?style=for-the-badge&logo=github&label=RELEASE)](https://github.com/Jeishod/tabby-docker-console/releases/latest)
+[![License](https://img.shields.io/github/license/Jeishod/tabby-docker-console?style=for-the-badge)](./LICENSE)
 
 A [Tabby](https://github.com/Eugeny/tabby) plugin that adds a Docker management panel to SSH sessions, inspired by the Docker interface in [Termix](https://github.com/Termix-SSH/Termix).
 
