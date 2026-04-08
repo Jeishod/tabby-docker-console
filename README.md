@@ -1,5 +1,7 @@
 # tabby-docker-console
 
+       
+
 A [Tabby](https://github.com/Eugeny/tabby) plugin that adds a Docker management panel to SSH sessions, inspired by the Docker interface in [Termix](https://github.com/Termix-SSH/Termix).
 
 All commands are executed over the **existing SSH session** — no extra connections are opened.
@@ -8,26 +10,28 @@ All commands are executed over the **existing SSH session** — no extra connect
 
 ## Features
 
-| Feature | Details |
-|---|---|
-| **Containers** | Card grid with state badges (running / exited / paused), image, ID, ports, creation date |
-| **Search & filter** | Live search by name / image / ID; filter by state |
-| **Actions** | Start / Stop / Restart / Remove (with per-card busy state) |
-| **Exec terminal** | Opens a new SSH tab running `docker exec -it <container> bash` (falls back to `sh`) |
-| **Logs** | Scrollable log view with tail selector, timestamps toggle, live auto-refresh (configurable interval), inline filter, and one-click download |
-| **Stats** | CPU, memory (with progress bars), network I/O, block I/O, PIDs — auto-refreshed every 5 s without re-rendering the layout |
-| **Images** | Grid with ID, size, creation date; remove button |
-| **Theme-aware UI** | Uses Tabby's dynamic CSS variables (`--theme-bg`, `--theme-fg`, …) so the panel matches any terminal colour scheme |
 
-![Containers list](./docs/docker-console-plugin-2-containers-list.jpeg)
+| Feature             | Details                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Containers**      | Card grid with state badges (running / exited / paused), image, ID, ports, creation date                                                    |
+| **Search & filter** | Live search by name / image / ID; filter by state                                                                                           |
+| **Actions**         | Start / Stop / Restart / Remove (with per-card busy state)                                                                                  |
+| **Exec terminal**   | Opens a new SSH tab running `docker exec -it <container> bash` (falls back to `sh`)                                                         |
+| **Logs**            | Scrollable log view with tail selector, timestamps toggle, live auto-refresh (configurable interval), inline filter, and one-click download |
+| **Stats**           | CPU, memory (with progress bars), network I/O, block I/O, PIDs — auto-refreshed every 5 s without re-rendering the layout                   |
+| **Images**          | Grid with ID, size, creation date; remove button                                                                                            |
+| **Theme-aware UI**  | Uses Tabby's dynamic CSS variables (`--theme-bg`, `--theme-fg`, …) so the panel matches any terminal colour scheme                          |
 
-![Container exec](./docs/docker-console-plugin-3-container-exec.jpeg)
 
-![Container logs](./docs/docker-console-plugin-4-container-logs.jpeg)
+Containers list
 
-![Container stats](./docs/docker-console-plugin-5-container-stats.jpeg)
+Container exec
 
-![Images](./docs/docker-console-plugin-6-images.jpeg)
+Container logs
+
+Container stats
+
+Images
 
 ---
 
@@ -68,14 +72,15 @@ Fully quit Tabby (`Cmd+Q` / `Ctrl+Q`) and reopen it.  The plugin is loaded at st
 ## Usage
 
 1. Open an SSH connection to a server that has Docker installed.
-2. Click the **Docker** button in the tab toolbar (next to Reconnect / SFTP / Ports),  
-   **or** right-click the SSH tab → **Docker Console**.
+2. Click the **Docker** button in the tab toolbar (next to Reconnect / SFTP / Ports),
+  **or** right-click the SSH tab → **Docker Console**.
 3. The Docker Console opens as a new Tabby tab.
 
-![Plugin shortcut](./docs/docker-console-plugin-1-plugin-shortcut.jpeg)
+Plugin shortcut
 
 > **Docker permissions** — the remote user must be able to run `docker` commands without
 > `sudo`.  Add the user to the `docker` group if needed:
+>
 > ```bash
 > sudo usermod -aG docker $USER   # then log out and back in
 > ```
@@ -115,20 +120,20 @@ self-restores after the first invocation so no other tab is affected.
 ## Known limitations
 
 - **sudo** — if Docker requires `sudo` on the remote host, commands will fail with a
-  permission error.  See the *Docker permissions* note above.
+permission error.  See the *Docker permissions* note above.
 - **Tabby version** — developed and tested against Tabby 1.0.163+.  The plugin uses
-  internal russh APIs (`channel.requestExec`, `channel.closed$`) that may change in
-  future Tabby releases.
+internal russh APIs (`channel.requestExec`, `channel.closed$`) that may change in
+future Tabby releases.
 - **Docker availability** — if Docker is not installed or the daemon is not running,
-  the panel displays an error and all buttons are disabled.
+the panel displays an error and all buttons are disabled.
 
 ---
 
 ## Author
 
-[![Telegram](https://img.shields.io/badge/-Telegram-000?&logo=Telegram)](https://t.me/Jeishod)
-[![LinkedIn](https://img.shields.io/badge/-LinkedIn-000?&logo=LinkedIn)](https://linkedin.com/in/Jeishod)
-[![GitHub](https://img.shields.io/badge/-GitHub-000?&logo=GitHub)](https://github.com/Jeishod)
+[Telegram](https://t.me/Jeishod)
+[LinkedIn](https://linkedin.com/in/Jeishod)
+[GitHub](https://github.com/Jeishod)
 
 ## License
 
