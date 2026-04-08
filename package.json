@@ -15,7 +15,10 @@
     "build": "webpack --progress --color",
     "watch": "webpack --progress --color --watch",
     "install:tabby": "mkdir -p \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/dist\" && cp package.json \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/\" && cp dist/index.js \"$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-docker-console/dist/\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags"
   },
   "files": [
     "dist"
