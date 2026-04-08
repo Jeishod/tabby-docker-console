@@ -27,15 +27,15 @@ All commands are executed over the **existing SSH session** — no extra connect
 | **Theme-aware UI**  | Uses Tabby's dynamic CSS variables (`--theme-bg`, `--theme-fg`, …) so the panel matches any terminal colour scheme                          |
 
 
-Containers list
+![Containers list](./docs/docker-console-plugin-2-containers-list.jpeg)
 
-Container exec
+![Container exec](./docs/docker-console-plugin-3-container-exec.jpeg)
 
-Container logs
+![Container logs](./docs/docker-console-plugin-4-container-logs.jpeg)
 
-Container stats
+![Container stats](./docs/docker-console-plugin-5-container-stats.jpeg)
 
-Images
+![Images](./docs/docker-console-plugin-6-images.jpeg)
 
 ---
 
@@ -80,7 +80,7 @@ Fully quit Tabby (`Cmd+Q` / `Ctrl+Q`) and reopen it.  The plugin is loaded at st
   **or** right-click the SSH tab → **Docker Console**.
 3. The Docker Console opens as a new Tabby tab.
 
-Plugin shortcut
+![Plugin shortcut](./docs/docker-console-plugin-1-plugin-shortcut.jpeg)
 
 > **Docker permissions** — the remote user must be able to run `docker` commands without
 > `sudo`.  Add the user to the `docker` group if needed:
@@ -135,9 +135,9 @@ the panel displays an error and all buttons are disabled.
 
 ## Author
 
-[Telegram](https://t.me/Jeishod)
-[LinkedIn](https://linkedin.com/in/Jeishod)
-[GitHub](https://github.com/Jeishod)
+[![Telegram](https://img.shields.io/badge/-Telegram-000?&logo=Telegram)](https://t.me/Jeishod)
+[![LinkedIn](https://img.shields.io/badge/-LinkedIn-000?&logo=LinkedIn)](https://linkedin.com/in/Jeishod)
+[![GitHub](https://img.shields.io/badge/-GitHub-000?&logo=GitHub)](https://github.com/Jeishod)
 
 ## License
 
