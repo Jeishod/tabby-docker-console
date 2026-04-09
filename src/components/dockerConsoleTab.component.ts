@@ -104,7 +104,11 @@ type FilterState = 'all' | 'running' | 'exited' | 'paused'
 
                         <div class="dc-card-header">
                             <span class="dc-card-name" [title]="displayName(c.names)">{{ displayName(c.names) }}</span>
-                            <span class="dc-state-badge" [ngClass]="'badge-' + c.state">{{ c.state }}</span>
+                            <div class="dc-card-badges">
+                                <span class="dc-state-badge" [ngClass]="'badge-' + c.state">{{ c.state }}</span>
+                                <span class="dc-state-badge dc-health-badge" [ngClass]="'badge-health-' + c.health"
+                                      *ngIf="c.health">{{ c.health }}</span>
+                            </div>
                         </div>
 
                         <div class="dc-card-fields">
@@ -510,6 +514,10 @@ type FilterState = 'all' | 'running' | 'exited' | 'paused'
         .badge-exited { background: rgba(255,255,255,0.06); color: var(--theme-fg-less, rgba(204,204,204,0.6)); border: 1px solid rgba(255,255,255,0.12); }
         .badge-paused { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.25); }
         .badge-restarting { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .dc-card-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        .badge-health-healthy { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+        .badge-health-unhealthy { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .badge-health-starting { background: rgba(234,179,8,0.12); color: #fbbf24; border: 1px solid rgba(234,179,8,0.2); }
 
         /* Card fields */
         .dc-card-fields { display: flex; flex-direction: column; gap: 4px; }
@@ -816,6 +824,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         this.busy = c.id
         try {
             await this.docker.startContainer(this.sshSession, c.id)
+            this.filterState = 'all'
             await this.refresh()
         } catch (e: any) {
             this.notify.error(e?.message ?? String(e))
@@ -829,6 +838,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         this.busy = c.id
         try {
             await this.docker.stopContainer(this.sshSession, c.id)
+            this.filterState = 'all'
             await this.refresh()
         } catch (e: any) {
             this.notify.error(e?.message ?? String(e))
@@ -842,6 +852,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         this.busy = c.id
         try {
             await this.docker.restartContainer(this.sshSession, c.id)
+            this.filterState = 'all'
             await this.refresh()
         } catch (e: any) {
             this.notify.error(e?.message ?? String(e))

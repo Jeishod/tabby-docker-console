@@ -9,6 +9,7 @@ export interface DockerContainer {
     image: string
     status: string
     state: string
+    health: string
     ports: string
     created: string
 }
