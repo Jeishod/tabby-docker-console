@@ -106,7 +106,29 @@ export class RemoteDockerService {
     }
 
     /**
+     * Extracts the health status of a container from its human-readable status string.
+     *
+     * Docker embeds health info in `{{.Status}}` (e.g. "Up 5 minutes (healthy)"),
+     * while the separate `{{.Health}}` template field is unavailable or returns `<nil>`
+     * for stopped containers on many Docker versions, breaking JSON line parsing.
+     *
+     * @param status - The raw `.Status` string returned by `docker ps`.
+     * @returns One of `"healthy"` | `"unhealthy"` | `"starting"` | `""`.
+     */
+    private parseHealth(status: string): string {
+        if (status.includes('(healthy)')) return 'healthy'
+        if (status.includes('(unhealthy)')) return 'unhealthy'
+        if (status.includes('health: starting')) return 'starting'
+        return ''
+    }
+
+    /**
      * Returns a list of all containers (running + stopped) on the remote host.
+     *
+     * Note: `{{.Health}}` is intentionally omitted from the format template — on many
+     * Docker versions it returns `<nil>` for non-running containers, which breaks JSON
+     * line parsing and causes stopped containers to silently disappear from the list.
+     * Health is derived from `{{.Status}}` instead via `parseHealth()`.
      *
      * @param session - Active `SSHSession` from an SSH tab.
      * @returns Array of `DockerContainer` objects.
@@ -114,10 +136,13 @@ export class RemoteDockerService {
     async listContainers(session: any): Promise<DockerContainer[]> {
         const format =
             '{"id":"{{.ID}}","names":"{{.Names}}","image":"{{.Image}}",' +
-            '"status":"{{.Status}}","state":"{{.State}}","ports":"{{.Ports}}",' +
-            '"created":"{{.CreatedAt}}"}'
+            '"status":"{{.Status}}","state":"{{.State}}",' +
+            '"ports":"{{.Ports}}","created":"{{.CreatedAt}}"}'
         const raw = await this.execCommand(session, `docker ps -a --format '${format}'`)
-        return this.parseJsonLines<DockerContainer>(raw)
+        return this.parseJsonLines<DockerContainer>(raw).map(c => ({
+            ...c,
+            health: this.parseHealth(c.status),
+        }))
     }
 
     /**
