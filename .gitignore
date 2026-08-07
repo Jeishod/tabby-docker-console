@@ -1,4 +1,5 @@
 node_modules/
 dist/
 .worktrees/
+docs/superpowers/
 *.js.map
