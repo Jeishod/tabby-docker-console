@@ -22,10 +22,13 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Build
         run: npm run build
 
       - name: Verify dist artifact
         run: test -f dist/index.js && echo "dist/index.js OK"
+
+      - name: Verify npm package
+        run: npm run verify:package

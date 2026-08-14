@@ -27,13 +27,16 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Build
         run: npm run build
 
       - name: Verify dist artifact
         run: test -f dist/index.js && echo "dist/index.js OK"
+
+      - name: Verify npm package
+        run: npm run verify:package
 
       # Generate changelog from git log since previous tag
       - name: Generate changelog
@@ -60,11 +63,8 @@ jobs:
 
             ## Install
 
-            ```bash
-            # Via Tabby plugin manager (search for tabby-docker-console)
-            # Or manually:
-            npm install -g tabby-docker-console
-            ```
+            Search for tabby-docker-console in Tabby's Plugin Manager.
+            The package must be installed by Tabby, not with global npm.
           draft: false
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') }}
           files: dist/index.js
