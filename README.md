@@ -45,31 +45,24 @@ All commands are executed over the **existing SSH session** — no extra connect
 
 Search for `tabby-docker-console` in **Settings → Plugin manager**.
 
-### Manual (development / testing)
+### Local development
 
 ```bash
 git clone https://github.com/jeishod/tabby-docker-console
 cd tabby-docker-console
-npm install --legacy-peer-deps
+npm ci
 npm run build
+npm run verify:package
 ```
 
-Copy the built artefacts to Tabby's plugin directory:
+For a persistent installation, publish the package to a registry visible to Tabby's
+Plugin Manager and install it from **Settings -> Plugin manager**. Do not copy files
+into `plugins/node_modules` manually: Tabby owns that npm workspace and may remove
+directories that are not present in its dependency graph.
 
-```bash
-PLUGIN_DIR=~/Library/Application\ Support/tabby/plugins/node_modules/tabby-docker-console
-mkdir -p "$PLUGIN_DIR/dist"
-cp package.json "$PLUGIN_DIR/"
-cp dist/index.js "$PLUGIN_DIR/dist/"
-```
-
-> **macOS path** shown above.  On Linux: `~/.config/tabby/plugins/node_modules/…`
->
-> ⚠️ Copy **only** `dist/` and `package.json`.  Do **not** symlink the whole project
-> directory — Tabby would pick up the local `node_modules/@angular/core` and crash
-> with a version mismatch.
-
-Fully quit Tabby (`Cmd+Q` / `Ctrl+Q`) and reopen it.  The plugin is loaded at startup.
+For an isolated local smoke test, use a separate package directory selected through
+Tabby's `TABBY_PLUGINS` launch environment. Keep that directory free of
+`node_modules`; Tabby must supply Angular, RxJS, and `tabby-*` modules from the host.
 
 ---
 
@@ -125,9 +118,10 @@ self-restores after the first invocation so no other tab is affected.
 
 - **sudo** — if Docker requires `sudo` on the remote host, commands will fail with a
 permission error.  See the *Docker permissions* note above.
-- **Tabby version** — developed and tested against Tabby 1.0.163+.  The plugin uses
-internal russh APIs (`channel.requestExec`, `channel.closed$`) that may change in
-future Tabby releases.
+- **Tabby version** — the current fork is aligned with the Tabby 1.0.235 desktop
+  release and its bundled `1.0.231-nightly.0` plugin APIs. The plugin uses internal
+  russh APIs (`channel.requestExec`, `channel.closed$`) that may change in future
+  Tabby releases.
 - **Docker availability** — if Docker is not installed or the daemon is not running,
 the panel displays an error and all buttons are disabled.
 

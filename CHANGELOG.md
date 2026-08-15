@@ -25,6 +25,15 @@ After running the command, GitHub Actions will automatically:
 
 ---
 
+## [0.1.5] - 2026-08-14
+
+### Changed
+- Align the development toolchain with Tabby's bundled Angular 15 and the package contract with 1.0.231-nightly.0 Tabby host APIs
+- Keep host Angular, RxJS, and Tabby modules external in the production bundle
+- Replace manual Tabby workspace copying with npm package verification and Plugin Manager installation guidance
+
+---
+
 ## [0.1.0] - 2026-04-04
 
 ### Added
