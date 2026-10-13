@@ -1,5 +1,8 @@
-import { ChangeDetectorRef, Component, ElementRef, Input, Injector, OnDestroy, OnInit, ViewChild } from '@angular/core'
+import { ChangeDetectorRef, Component, ElementRef, Input, Injector, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core'
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
+import { Observable } from 'rxjs'
 import { AppService, BaseTabComponent, NotificationsService } from 'tabby-core'
+import { AnsiLine, parseAnsiLines, stripAnsi } from '../ansi'
 import { DockerContainer, DockerImage, DockerStats } from '../models'
 import { RemoteDockerService } from '../services/remoteDocker.service'
 
@@ -243,7 +246,12 @@ type FilterState = 'all' | 'running' | 'exited' | 'paused'
                     </button>
                 </div>
 
-                <div class="dc-stats-error" *ngIf="!containerStats">
+                <div class="dc-stats-loading" *ngIf="!containerStats && !statsLoaded">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading stats…
+                </div>
+
+                <div class="dc-stats-error" *ngIf="!containerStats && statsLoaded">
                     <i class="fas fa-exclamation-triangle"></i>
                     Could not load stats. The container may have stopped or Docker stats are unavailable.
                 </div>
@@ -423,7 +431,8 @@ type FilterState = 'all' | 'running' | 'exited' | 'paused'
                            [(ngModel)]="logsFilter">
                 </div>
 
-                <pre class="dc-logs" #logsEl>{{ filteredLogs }}</pre>
+                <pre class="dc-logs" #logsEl tabindex="0" [innerHTML]="filteredLogsHtml"
+                     (keydown)="onLogsKeydown($event)" (mousedown)="$event.stopPropagation()"></pre>
             </ng-container>
 
         </div>
@@ -574,8 +583,53 @@ type FilterState = 'all' | 'running' | 'exited' | 'paused'
         .dc-logs-filter-input::placeholder { color: var(--theme-fg-less-2, rgba(204,204,204,0.4)); }
 
         .dc-logs { flex: 1; margin: 0; padding: 12px 16px; font-family: 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; overflow-y: auto; color: var(--theme-fg, #cccccc); background: transparent; }
+        /*
+         * Log pane colors — taken from the IntelliJ IDEA color scheme "Dark green" (Dark_green.icls).
+         * Explicit scheme values: background, normal output, red, blue, magenta, cyan.
+         * Everything else is inherited from the scheme's parent ("Default"), exactly as IDEA does.
+         * ANSI → IDEA key mapping: 30 BLACK, 31-36 RED…CYAN, 37 GRAY, 90 DARKGRAY, 91-96 *_BRIGHT, 97 WHITE.
+         * Keys the scheme overrides with only a FOREGROUND reuse that color as their background.
+         */
+        .dc-logs {
+            /* Keep lines as-is (no soft wrap); long lines scroll horizontally. */
+            white-space: pre;
+            word-break: normal;
+            /* Tabby disables text selection globally; re-enable it for log text. */
+            -webkit-user-select: text;
+            user-select: text;
+            cursor: text;
+            outline: none;
+            overflow-wrap: normal;
+            overflow: auto;
+            min-width: 0;
+            font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: #e0e2e4;
+            background: #293134;
+            --dc-ansi-default-fg: #e0e2e4;
+            --dc-ansi-default-bg: #293134;
+            --dc-ansi-0:  #000000;  --dc-ansi-bg-0:  #000000;  /* BLACK          */
+            --dc-ansi-1:  #ff6b68;  --dc-ansi-bg-1:  #ff6b68;  /* RED            */
+            --dc-ansi-2:  #067d17;  --dc-ansi-bg-2:  #b5e7be;  /* GREEN          */
+            --dc-ansi-3:  #b28c00;  --dc-ansi-bg-3:  #f7e79f;  /* YELLOW         */
+            --dc-ansi-4:  #5394ec;  --dc-ansi-bg-4:  #5394ec;  /* BLUE           */
+            --dc-ansi-5:  #983498;  --dc-ansi-bg-5:  #983498;  /* MAGENTA        */
+            --dc-ansi-6:  #006969;  --dc-ansi-bg-6:  #006969;  /* CYAN           */
+            --dc-ansi-7:  #929292;  --dc-ansi-bg-7:  #e6e6e6;  /* GRAY           */
+            --dc-ansi-8:  #656565;  --dc-ansi-bg-8:  #b7b7b7;  /* DARKGRAY       */
+            --dc-ansi-9:  #ff1616;  --dc-ansi-bg-9:  #fe7277;  /* RED_BRIGHT     */
+            --dc-ansi-10: #16b42c;  --dc-ansi-bg-10: #85f399;  /* GREEN_BRIGHT   */
+            --dc-ansi-11: #ecc32c;  --dc-ansi-bg-11: #ffe055;  /* YELLOW_BRIGHT  */
+            --dc-ansi-12: #2d61f0;  --dc-ansi-bg-12: #95c2ff;  /* BLUE_BRIGHT    */
+            --dc-ansi-13: #e617e6;  --dc-ansi-bg-13: #fbacfb;  /* MAGENTA_BRIGHT */
+            --dc-ansi-14: #15c1c1;  --dc-ansi-bg-14: #8cf1f1;  /* CYAN_BRIGHT    */
+            --dc-ansi-15: #c9c9c9;  --dc-ansi-bg-15: #ffffff;  /* WHITE          */
+        }
+        /* Spans injected via [innerHTML] don't carry the component's encapsulation attribute. */
+        .dc-logs ::ng-deep * { -webkit-user-select: text; user-select: text; }
 
         /* ── Stats view ──────────────────────────────────────── */
+        .dc-stats-loading { padding: 30px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--theme-fg-less-2, rgba(204,204,204,0.6)); font-size: 12px; }
         .dc-stats-error { padding: 30px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #f87171; font-size: 12px; }
         .dc-autorefresh-badge { display: flex; align-items: center; gap: 4px; font-size: 11px; opacity: 0.6; padding: 0 6px; white-space: nowrap; }
         .dc-pulse { font-size: 8px; color: var(--theme-green, #4ade80); animation: dc-pulse-anim 1.5s ease-in-out infinite; }
@@ -639,9 +693,17 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
     logsAutoRefresh = true
     logsRefreshInterval = 3
     private logsRefreshTimer: any = null
+    /** Cache: parsed ANSI lines for the current `containerLogs`. */
+    private parsedLogsSource: string | null = null
+    private parsedLogLines: AnsiLine[] = []
+    /** Cache: rendered HTML for the current (logs, filter) pair. */
+    private renderedLogsKey: string | null = null
+    private renderedLogsHtml: SafeHtml = ''
 
     containerStats: DockerStats | null = null
     statsLoading = false
+    /** True once at least one stats request for the selected container has finished. */
+    statsLoaded = false
     private statsRefreshTimer: any = null
     private statsRefreshing = false
     readonly statsRefreshIntervalMs = 5000
@@ -652,6 +714,8 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         private notify: NotificationsService,
         private cdr: ChangeDetectorRef,
         private app: AppService,
+        private sanitizer: DomSanitizer,
+        private zone: NgZone,
     ) {
         // The devDependency typings declare `constructor()`, but the runtime
         // BaseTabComponent requires an Injector argument.  The mismatch is a
@@ -669,7 +733,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
     private async loadDockerVersion (): Promise<void> {
         try {
             this.dockerVersion = await this.docker.getDockerVersion(this.sshSession)
-            this.cdr.markForCheck()
+            this.markDirty()
         } catch {
             // silently ignore
         }
@@ -696,7 +760,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
     setFilter (state: FilterState): void {
         this.filterState = state
         this.filterMenuOpen = false
-        this.cdr.markForCheck()
+        this.markDirty()
     }
 
     filterLabel (): string {
@@ -738,15 +802,44 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         )
     }
 
-    get filteredLogs (): string {
-        if (!this.logsFilter.trim()) {
-            return this.containerLogs || '(no output)'
+    /**
+     * Log output rendered as HTML with ANSI colors applied.
+     * Filtering matches against the plain text (escape codes removed) of each line.
+     * Results are cached so change detection doesn't re-parse on every tick.
+     */
+    get filteredLogsHtml (): SafeHtml {
+        if (this.parsedLogsSource !== this.containerLogs) {
+            const lines = parseAnsiLines(this.containerLogs || '')
+            // Drop the trailing empty line produced by the final newline.
+            if (lines.length && lines[lines.length - 1].text === '') {
+                lines.pop()
+            }
+            this.parsedLogLines = lines
+            this.parsedLogsSource = this.containerLogs
+            this.renderedLogsKey = null
         }
-        const q = this.logsFilter.toLowerCase()
-        return this.containerLogs
-            .split('\n')
-            .filter(line => line.toLowerCase().includes(q))
-            .join('\n') || '(no matching lines)'
+
+        const filtering = !!this.logsFilter.trim()
+        const key = filtering ? this.logsFilter.toLowerCase() : ''
+        if (this.renderedLogsKey === key) {
+            return this.renderedLogsHtml
+        }
+
+        const lines = filtering
+            ? this.parsedLogLines.filter(l => l.text.toLowerCase().includes(key))
+            : this.parsedLogLines
+
+        let html: string
+        if (lines.length) {
+            html = lines.map(l => l.html).join('\n')
+        } else {
+            html = `<span style="opacity:0.5">${filtering ? '(no matching lines)' : '(no output)'}</span>`
+        }
+
+        // Safe: parseAnsiLines HTML-escapes all log text; only our own <span style> tags remain.
+        this.renderedLogsHtml = this.sanitizer.bypassSecurityTrustHtml(html)
+        this.renderedLogsKey = key
+        return this.renderedLogsHtml
     }
 
     displayName (names: string): string {
@@ -816,7 +909,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.errorMessage = e?.message ?? String(e)
         } finally {
             this.loading = false
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -830,7 +923,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(e?.message ?? String(e))
         } finally {
             this.busy = null
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -844,7 +937,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(e?.message ?? String(e))
         } finally {
             this.busy = null
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -858,7 +951,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(e?.message ?? String(e))
         } finally {
             this.busy = null
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -871,7 +964,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(e?.message ?? String(e))
         } finally {
             this.busy = null
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -884,7 +977,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(e?.message ?? String(e))
         } finally {
             this.busy = null
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -893,13 +986,20 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         this.selectedContainer = c
         this.activeView = 'logs'
         this.logsFilter = ''
-        await this.reloadLogs()
+        // Opening a container's logs always starts at the newest line.
+        await this.reloadLogs(true)
         if (this.logsAutoRefresh) {
             this.startAutoRefresh()
         }
     }
 
-    async reloadLogs (): Promise<void> {
+    /**
+     * Fetches logs again.
+     * Scrolls to the bottom only when `forceScroll` is set or the user was already
+     * at the bottom; otherwise the current scroll position is kept so that
+     * auto-refresh doesn't yank the view away while reading older lines.
+     */
+    async reloadLogs (forceScroll = false): Promise<void> {
         if (!this.selectedContainer || !this.sshSession) {
             return
         }
@@ -908,24 +1008,140 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         }
         this.logsLoading = true
         // Keep old content visible while loading (no flicker)
-        this.cdr.markForCheck()
+        this.markDirty()
+        let logs: string
         try {
             const tail = this.logsTail === 0 ? 99999 : this.logsTail
             const tsFlag = this.logsTimestamps ? '--timestamps' : ''
-            this.containerLogs = await this.docker.getContainerLogs(
+            logs = await this.docker.getContainerLogs(
                 this.sshSession,
                 this.selectedContainer.id,
                 tail,
                 tsFlag,
             )
         } catch (e: any) {
-            this.containerLogs = `Error: ${e?.message ?? e}`
-        } finally {
-            this.logsLoading = false
-            this.cdr.markForCheck()
-            // Scroll to bottom after content updates
-            setTimeout(() => this.scrollLogsToBottom(), 30)
+            logs = `Error: ${e?.message ?? e}`
         }
+
+        // Don't replace the content while the user is selecting text in it — that would
+        // wipe the selection. Auto-refresh simply picks the new logs up on a later tick.
+        if (!forceScroll && this.hasLogsSelection()) {
+            this.zone.run(() => {
+                this.logsLoading = false
+                try { this.cdr.detectChanges() } catch { /* destroyed */ }
+            })
+            return
+        }
+
+        // Measure right before swapping content, so scrolling done during the fetch counts.
+        const el = this.getLogsElement()
+        const stickToBottom = forceScroll || this.isLogsAtBottom()
+        const prevScrollTop = el?.scrollTop ?? 0
+
+        // The SSH channel resolves outside Angular's zone, so markForCheck() alone does not
+        // re-render until the next user event (that's why logs showed "(no output)" until
+        // the pane was clicked/scrolled). Re-enter the zone and render synchronously so the
+        // DOM already holds the new content when we adjust the scroll position.
+        this.zone.run(() => {
+            this.containerLogs = logs
+            this.logsLoading = false
+            try {
+                this.cdr.detectChanges()
+            } catch {
+                // view was destroyed while the request was in flight
+                return
+            }
+            const cur = this.getLogsElement()
+            if (!cur) {
+                return
+            }
+            if (stickToBottom) {
+                cur.scrollTop = cur.scrollHeight
+            } else {
+                cur.scrollTop = prevScrollTop
+            }
+        })
+    }
+
+    /** True when there is a non-empty text selection inside the log pane. */
+    private hasLogsSelection (): boolean {
+        const el = this.getLogsElement()
+        const sel = window.getSelection()
+        if (!el || !sel || sel.isCollapsed || sel.rangeCount === 0) {
+            return false
+        }
+        return el.contains(sel.anchorNode) || el.contains(sel.focusNode)
+    }
+
+    /** Cmd/Ctrl+C copies the selection, Cmd/Ctrl+A selects only the log text. */
+    onLogsKeydown (ev: KeyboardEvent): void {
+        if (!(ev.metaKey || ev.ctrlKey) || ev.altKey || ev.shiftKey) {
+            return
+        }
+        const key = ev.key.toLowerCase()
+        if (key === 'c') {
+            const text = window.getSelection()?.toString() ?? ''
+            if (!text) {
+                return
+            }
+            ev.preventDefault()
+            ev.stopPropagation()
+            this.copyText(text)
+        } else if (key === 'a') {
+            const el = this.getLogsElement()
+            const sel = window.getSelection()
+            if (el && sel) {
+                ev.preventDefault()
+                ev.stopPropagation()
+                const range = document.createRange()
+                range.selectNodeContents(el)
+                sel.removeAllRanges()
+                sel.addRange(range)
+            }
+        }
+    }
+
+    private copyText (text: string): void {
+        const fallback = (): void => {
+            const ta = document.createElement('textarea')
+            ta.value = text
+            ta.style.position = 'fixed'
+            ta.style.opacity = '0'
+            document.body.appendChild(ta)
+            ta.select()
+            try { document.execCommand('copy') } finally { ta.remove() }
+        }
+        try {
+            if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(text).catch(fallback)
+            } else {
+                fallback()
+            }
+        } catch {
+            fallback()
+        }
+    }
+
+    /**
+     * Schedules a re-render. SSH channel callbacks resolve outside Angular's zone, so a
+     * plain markForCheck() wouldn't trigger change detection until the next user event.
+     * Running it inside the zone makes Angular tick as soon as the call returns.
+     */
+    private markDirty (): void {
+        this.zone.run(() => this.cdr.markForCheck())
+    }
+
+    private getLogsElement (): HTMLElement | null {
+        return this.logsEl?.nativeElement ?? document.querySelector('.dc-logs')
+    }
+
+    /** True when the log pane is scrolled to (within a few px of) the bottom, or not rendered yet. */
+    private isLogsAtBottom (): boolean {
+        const el = this.getLogsElement()
+        if (!el) {
+            return true
+        }
+        return el.scrollHeight - el.scrollTop - el.clientHeight <= 24
     }
 
     private scrollLogsToBottom (): void {
@@ -947,7 +1163,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         } else {
             this.stopAutoRefresh()
         }
-        this.cdr.markForCheck()
+        this.markDirty()
     }
 
     restartAutoRefresh (): void {
@@ -980,7 +1196,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         const name = this.displayName(this.selectedContainer.names)
         const ts = new Date().toISOString().replace(/[:.]/g, '-')
         const filename = `${name}-${ts}.log`
-        const blob = new Blob([this.containerLogs], { type: 'text/plain' })
+        const blob = new Blob([stripAnsi(this.containerLogs)], { type: 'text/plain' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
@@ -995,6 +1211,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         if (this.selectedContainer?.id !== c.id) {
             this.containerStats = null
         }
+        this.statsLoaded = !!this.containerStats
         this.selectedContainer = c
         this.activeView = 'stats'
         await this.reloadStats()
@@ -1011,7 +1228,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         }
         this.statsRefreshing = true
         this.statsLoading = true
-        this.cdr.markForCheck()
+        this.markDirty()
         try {
             const fresh = await this.docker.getContainerStats(this.sshSession, this.selectedContainer.id)
             if (this.containerStats && fresh) {
@@ -1026,8 +1243,9 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         } finally {
             this.statsLoading = false
             this.statsRefreshing = false
+            this.statsLoaded = true
             // Single markForCheck at the end — never triggers *ngIf destruction mid-cycle.
-            this.cdr.markForCheck()
+            this.markDirty()
         }
     }
 
@@ -1052,7 +1270,7 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
         this.stopStatsRefresh()
         this.activeView = 'containers'
         this.selectedContainer = null
-        this.cdr.markForCheck()
+        this.markDirty()
     }
 
     ngOnDestroy (): void {
@@ -1072,15 +1290,12 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             return
         }
         try {
-            // Detect the best available shell inside the container (prefer bash, fallback sh).
-            let shell = 'sh'
-            try {
-                const r = await this.docker.execCommand(sshSession, `docker exec ${c.id} which bash 2>/dev/null`)
-                if (r.trim()) { shell = 'bash' }
-            } catch {}
-
+            // Pick the shell inside the container itself (prefer bash, fall back to sh).
+            // Doing this in one command avoids opening + closing an extra SSH channel right
+            // before the exec channel, which could make the new tab's channel close at once.
             const containerName = this.displayName(c.names)
-            const execCmd = `docker exec -it ${c.id} ${shell}`
+            const pickShell = 'if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi'
+            const execCmd = `docker exec -it ${c.id} sh -c '${pickShell}'`
 
             // ── Monkey-patch approach ────────────────────────────────────────────────
             // LoginScriptProcessor-based injection fails because ConfigProxy silently
@@ -1110,8 +1325,12 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
                     pixHeight: 0,
                     pixWidth: 0,
                 })
+                // SSHShellSession subscribes to data$/eof$/closed$ only after this function
+                // returns. Anything emitted before that (shell prompt, or docker's error
+                // message if the exec fails) would be lost — buffer it and replay it.
+                const buffered = bufferChannelEvents(ch)
                 await ch.requestExec(execCmd)
-                return ch
+                return buffered
             }
 
             const { ProfilesService } = await import('tabby-core') as any
@@ -1119,7 +1338,10 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             const execProfile = { ...profile, name: `${profile.name ?? ''} → ${containerName}` }
 
             try {
-                await profiles.openNewTabForProfile(execProfile)
+                // Must run inside Angular's zone: we got here after an SSH round-trip
+                // (outside the zone), and the new tab would otherwise not render until
+                // the next mouse event.
+                await this.zone.run(() => profiles.openNewTabForProfile(execProfile))
             } catch (e: any) {
                 // Restore original on error so the SSH session is not broken.
                 sshSession.openShellChannel = originalOpenShellChannel
@@ -1129,4 +1351,57 @@ export class DockerConsoleTabComponent extends BaseTabComponent implements OnIni
             this.notify.error(`Could not open exec tab: ${e?.message}`)
         }
     }
+}
+
+/**
+ * Wraps a russh channel so that data / eof / close events emitted before anyone
+ * subscribes are not lost: early data chunks are replayed to the first data$ subscriber,
+ * and eof$ / closed$ fire immediately for late subscribers if they already happened.
+ * Everything else (write, resizePTY, close …) is forwarded to the real channel.
+ */
+function bufferChannelEvents (ch: any): any {
+    const early: Uint8Array[] = []
+    let sink: ((d: Uint8Array) => void) | null = null
+    ch.data$.subscribe((d: Uint8Array) => (sink ? sink(d) : early.push(d)))
+
+    const data$ = new Observable<Uint8Array>(sub => {
+        for (const d of early.splice(0)) {
+            sub.next(d)
+        }
+        sink = d => sub.next(d)
+        return () => { sink = null }
+    })
+
+    const latch = (source: Observable<any> | undefined): Observable<void> | undefined => {
+        if (!source) {
+            return undefined
+        }
+        let fired = false
+        const listeners = new Set<() => void>()
+        source.subscribe(() => {
+            fired = true
+            listeners.forEach(l => l())
+        })
+        return new Observable<void>(sub => {
+            if (fired) {
+                sub.next()
+                return
+            }
+            const l = () => sub.next()
+            listeners.add(l)
+            return () => { listeners.delete(l) }
+        })
+    }
+    const eof$ = latch(ch.eof$)
+    const closed$ = latch(ch.closed$)
+
+    return new Proxy(ch, {
+        get (target, prop) {
+            if (prop === 'data$') { return data$ }
+            if (prop === 'eof$' && eof$) { return eof$ }
+            if (prop === 'closed$' && closed$) { return closed$ }
+            const v = Reflect.get(target, prop, target)
+            return typeof v === 'function' ? v.bind(target) : v
+        },
+    })
 }
